@@ -1,0 +1,47 @@
+graph TD
+    %% Определение стилей
+    classDef lawClass fill:#1e3a5f,stroke:#000,stroke-width:2px,color:#fff;
+    classDef headerClass fill:#2b5a8c,stroke:#000,stroke-width:1px,color:#fff;
+    classDef itemClass fill:#e6f0fa,stroke:#2b5a8c,stroke-width:1px,color:#000;
+    classDef subClass fill:#f4f9ff,stroke:#2b5a8c,stroke-width:1px,color:#333;
+
+    %% Узел закона
+    FZ73("<b>Федеральный закон<br>№ 73-ФЗ от 25.06.2002</b><br>«Об объектах культурного наследия<br>(памятниках истории и культуры) народов РФ»"):::lawClass
+
+    %% Основные блоки
+    FZ73 --> Purpose
+    subgraph Purpose [Цель закона]
+        P1(Обеспечение доступа граждан<br>к культурным ценностям):::subClass
+        P2(Сохранение культурно-национальной<br>самобытности народов РФ):::subClass
+        P3(Государственная охрана ОКН):::subClass
+    end
+
+    FZ73 --> Innovation
+    subgraph Innovation [Ключевые нововведения]
+        I1(<b>Единый государственный реестр (ЕГРОКН)</b><br>Переход от бумажного учета<br>к единой федеральной системе):::itemClass
+        I2(<b>Систематизация видов ОКН</b><br>(Ст. 3)):::itemClass
+        I3(<b>Категории охраны</b><br>Федеральная / Региональная / Местная):::itemClass
+        I4(<b>Принцип открытости данных</b><br>Публичность реестра<br>(кроме археологии)):::itemClass
+    end
+
+    FZ73 --> Subjects
+    subgraph Subjects [Виды объектов культурного наследия (Ст. 3)]
+        S1(<b>Памятники</b><br>Отдельные постройки, здания<br>и сооружения):::subClass
+        S2(<b>Ансамбли</b><br>Объединения памятников,<br>строений или сооружений):::subClass
+        S3(<b>Достопримечательные места</b><br>Творения человека или природы,<br>памятные места):::subClass
+    end
+
+    %% Связка инноваций с детализацией
+    I2 --> Subjects
+
+    FZ73 --> Processes
+    subgraph Processes [Процедуры учета]
+        Pr1(<b>Этап 1</b><br>Включение в перечень<br>выявленных объектов):::subClass
+        Pr2(<b>Этап 2</b><br>Государственная<br>историко-культурная экспертиза):::subClass
+        Pr3(<b>Этап 3</b><br>Решение о включении в реестр<br>и присвоение статуса):::subClass
+        Pr1 --> Pr2 --> Pr3
+    end
+
+    %% Стилизация заголовков групп
+    classDef groupTitle fill:#d9e4f0,stroke:#1e3a5f,stroke-width:1px,color:#1e3a5f;
+    class Purpose,Innovation,Subjects,Processes groupTitle;
