@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Чат-бот ОКН | Департамент культурного наследия</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+        }
+        body {
+            background: #e5ddd5;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* Контейнер чата */
+        .chat-container {
+            width: 100%;
+            max-width: 550px;
+            height: 95vh;
+            background: #f0f2f5;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+        /* Шапка чата */
+        .chat-header {
+            background: #075e54;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .chat-header i {
+            font-size: 28px;
+        }
+        .chat-header h3 {
+            font-size: 18px;
+            font-weight: 500;
+        }
+        .chat-header p {
+            font-size: 12px;
+            opacity: 0.8;
+        }
+        /* Область сообщений */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" opacity="0.05"><path fill="none" d="M20 20 L80 20 M20 40 L80 40 M20 60 L80 60 M20 80 L80 80" stroke="gray" stroke-width="1"/></svg>');
+        }
+        /* Сообщения */
+        .message {
+            max-width: 80%;
+            padding: 10px 14px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            font-size: 14px;
+            line-height: 1.4;
+            animation: fadeIn 0.2s ease;
+        }
+        .bot-message {
+            background: white;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+        }
+        .user-message {
+            background: #dcf8c5;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        .system-message {
+            background: #ffe6b3;
+            align-self: center;
+            font-size: 12px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            color: #664d00;
+        }
+        /* Индикатор набора */
+        .typing {
+            align-self: flex-start;
+            background: white;
+            padding: 8px 15px;
+            border-radius: 18px;
+            font-size: 13px;
+            color: #555;
+        }
+        .dot {
+            display: inline-block;
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: #888;
+            margin: 0 2px;
+            animation: blink 1.4s infinite;
+        }
+        .dot:nth-child(2) { animation-delay: 0.2s; }
+        .dot:nth-child(3) { animation-delay: 0.4s; }
+        @keyframes blink { 0%, 60%, 100% { opacity: 0.2; } 30% { opacity: 1; } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; } }
+        /* Область ввода */
+        .chat-input-area {
+            background: #fff;
+            padding: 12px;
+            border-top: 1px solid #ddd;
+            display: flex;
+            gap: 8px;
+        }
+        .chat-input-area input {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ccc;
+            border-radius: 30px;
+            outline: none;
+            font-size: 14px;
+        }
+        .chat-input-area button {
+            background: #075e54;
+            border: none;
+            color: white;
+            width: 44px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 20px;
+        }
+        .chat-input-area button:disabled {
+            background: #aaa;
+            cursor: not-allowed;
+        }
+        /* Стили для кнопок выбора (опции) */
+        .options-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        .opt-btn {
+            background: #e9ecef;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .opt-btn:hover {
+            background: #d4d9df;
+        }
+        /* Модальное окно итоговой страницы */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            visibility: hidden;
+            opacity: 0;
+            transition: 0.2s;
+        }
+        .modal-overlay.active {
+            visibility: visible;
+            opacity: 1;
+        }
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80vh;
+            border-radius: 20px;
+            padding: 20px;
+            overflow-y: auto;
+            position: relative;
+        }
+        .modal-content h3 {
+            margin-bottom: 15px;
+            color: #075e54;
+        }
+        .modal-content .object-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 5px solid #075e54;
+        }
+        .modal-content button {
+            background: #075e54;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        .close-modal {
+            position: absolute;
+            top: 10px;
+            right: 20px;
+            font-size: 28px;
+            cursor: pointer;
+        }
+        .badge {
+            display: inline-block;
+            background: #ddd;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            margin-right: 5px;
+        }
+        hr {
+            margin: 12px 0;
+        }
+        @media (max-width: 550px) {
+            .message { max-width: 90%; }
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+<div class="chat-container">
+    <div class="chat-header">
+        <i class="fas fa-robot"></i>
+        <div>
+            <h3>ОКН Бот помощник</h3>
+            <p>Департамент культурного наследия</p>
+        </div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+        <div class="message bot-message">🏛 Здравствуйте! Я чат-бот для внесения объектов культурного наследия. Что хотите сделать?</div>
+        <div class="options-buttons" id="initialOptions">
+            <button class="opt-btn" data-action="new">➕ Добавить объект</button>
+            <button class="opt-btn" data-action="list">📋 Мои объекты</button>
+        </div>
+    </div>
+    <div class="chat-input-area" id="inputArea">
+        <input type="text" id="messageInput" placeholder="Введите ответ..." autocomplete="off">
+        <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<!-- Модальное окно для отображения итоговой HTML-страницы (объект) -->
+<div id="resultModal" class="modal-overlay">
+    <div class="modal-content">
+        <span class="close-modal" id="closeModalBtn">&times;</span>
+        <h3><i class="fas fa-landmark"></i> Итоговая карточка объекта</h3>
+        <div id="modalObjectDetails"></div>
+        <button id="printObjectBtn">📄 Распечатать</button>
+    </div>
+</div>
+
+<script>
+    // Состояние диалога
+    let step = 'idle'; // idle, asking_name, asking_status, asking_type, asking_location, asking_description, asking_document
+    let currentObject = {
+        name: '',
+        status: '',
+        type: '',
+        location: '',
+        description: '',
+        document: null,   // сохраняем имя файла и base64
+        documentName: ''
+    };
+    let userObjects = []; // все объекты пользователя (хранятся в localStorage)
+    let waitingForFile = false;
+
+    // DOM элементы
+    const chatDiv = document.getElementById('chatMessages');
+    const inputField = document.getElementById('messageInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const modal = document.getElementById('resultModal');
+    const modalDetails = document.getElementById('modalObjectDetails');
+    const closeModal = document.getElementById('closeModalBtn');
+    const printBtn = document.getElementById('printObjectBtn');
+
+    // Загрузка сохранённых объектов
+    function loadObjects() {
+        const stored = localStorage.getItem('heritage_chat_objects');
+        if (stored) {
+            userObjects = JSON.parse(stored);
+        } else {
+            userObjects = [];
+        }
+    }
+    function saveObjects() {
+        localStorage.setItem('heritage_chat_objects', JSON.stringify(userObjects));
+    }
+
+    // Добавление сообщения в чат
+    function addMessage(text, sender, isSystem = false) {
+        const msgDiv = document.createElement('div');
+        msgDiv.classList.add('message');
+        if (isSystem) {
+            msgDiv.classList.add('system-message');
+        } else if (sender === 'bot') {
+            msgDiv.classList.add('bot-message');
+        } else {
+            msgDiv.classList.add('user-message');
+        }
+        msgDiv.innerHTML = text;
+        chatDiv.appendChild(msgDiv);
+        chatDiv.scrollTop = chatDiv.scrollHeight;
+    }
+
+    // Удалить кнопки опций (если есть)
+    function removeOptions() {
+        const existing = document.querySelector('#initialOptions');
+        if (existing) existing.remove();
+        const anyOptions = document.querySelectorAll('.options-buttons:not(#initialOptions)');
+        anyOptions.forEach(btn => btn.remove());
+    }
+
+    // Показать кнопки выбора (для статуса, вида)
+    function showStatusOptions() {
+        removeOptions();
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options-buttons';
+        optionsDiv.innerHTML = `
+            <button class="opt-btn" data-status="federal">🏛 Федеральный</button>
+            <button class="opt-btn" data-status="regional">🏢 Региональный</button>
+            <button class="opt-btn" data-status="municipal">🏘 Муниципальный</button>
+        `;
+        chatDiv.appendChild(optionsDiv);
+        // Обработчики
+        optionsDiv.querySelectorAll('.opt-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const val = btn.getAttribute('data-status');
+                let text = '';
+                if (val === 'federal') text = 'Федеральный';
+                else if (val === 'regional') text = 'Региональный';
+                else text = 'Муниципальный';
+                addMessage(text, 'user');
+                currentObject.status = val;
+                optionsDiv.remove();
+                askNext('status');
+            });
+        });
+    }
+
+    function showTypeOptions() {
+        removeOptions();
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options-buttons';
+        optionsDiv.innerHTML = `
+            <button class="opt-btn" data-type="monument">🏺 Памятник</button>
+            <button class="opt-btn" data-type="ensemble">🏛 Ансамбль</button>
+            <button class="opt-btn" data-type="landmark">🗺 Достопримечательное место</button>
+            <button class="opt-btn" data-type="architectural_complex">🏰 Архитектурный комплекс</button>
+            <button class="opt-btn" data-type="historical_building">🏠 Историческое здание</button>
+            <button class="opt-btn" data-type="garden_park">🌳 Садово-парковое искусство</button>
+            <button class="opt-btn" data-type="archaeological">⛏ Объект археологического наследия</button>
+        `;
+        chatDiv.appendChild(optionsDiv);
+        optionsDiv.querySelectorAll('.opt-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const val = btn.getAttribute('data-type');
+                let displayText = btn.innerText.trim();
+                addMessage(displayText, 'user');
+                currentObject.type = val;
+                optionsDiv.remove();
+                askNext('type');
+            });
+        });
+    }
+
+    // Функция для продолжения диалога после ответа
+    function askNext(afterField) {
+        if (afterField === 'status') {
+            step = 'asking_type';
+            addMessage('Выберите вид объекта:', 'bot');
+            showTypeOptions();
+        } else if (afterField === 'type') {
+            step = 'asking_location';
+            addMessage('📍 Укажите местоположение (адрес, район, город):', 'bot');
+            inputField.disabled = false;
+            inputField.focus();
+        } else if (afterField === 'location') {
+            step = 'asking_description';
+            addMessage('📝 Напишите краткое описание / историческую справку об объекте:', 'bot');
+            inputField.disabled = false;
+            inputField.focus();
+        } else if (afterField === 'description') {
+            step = 'asking_document';
+            addMessage('📎 Прикрепите документ (файл PDF, JPG, PNG, DOC). Нажмите на кнопку "Выбрать файл" под полем ввода:', 'bot');
+            // Показываем специальный контрол для загрузки файла
+            showFileUploader();
+        } else if (afterField === 'document') {
+            // Завершение, показываем итог
+            finishObjectCreation();
+        }
+    }
+
+    function showFileUploader() {
+        // Создаём временный элемент выбора файла
+        const fileInputDiv = document.createElement('div');
+        fileInputDiv.className = 'options-buttons';
+        fileInputDiv.style.gap = '10px';
+        fileInputDiv.innerHTML = `
+            <input type="file" id="tempFileInput" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="display:inline-block; font-size:12px;">
+            <button class="opt-btn" id="confirmFileBtn">✅ Прикрепить</button>
+            <button class="opt-btn" id="skipFileBtn">⏩ Пропустить</button>
+        `;
+        chatDiv.appendChild(fileInputDiv);
+        const fileInput = fileInputDiv.querySelector('#tempFileInput');
+        const confirmBtn = fileInputDiv.querySelector('#confirmFileBtn');
+        const skipBtn = fileInputDiv.querySelector('#skipFileBtn');
+
+        confirmBtn.onclick = () => {
+            const file = fileInput.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    currentObject.document = e.target.result; // base64
+                    currentObject.documentName = file.name;
+                    addMessage(`📎 Прикреплён файл: ${file.name}`, 'user');
+                    fileInputDiv.remove();
+                    askNext('document');
+                };
+                reader.readAsDataURL(file);
+            } else {
+                addMessage('❌ Файл не выбран. Пожалуйста, выберите файл или нажмите "Пропустить".', 'bot');
+            }
+        };
+        skipBtn.onclick = () => {
+            currentObject.document = null;
+            currentObject.documentName = '';
+            addMessage('⏩ Документ не прикреплён', 'user');
+            fileInputDiv.remove();
+            askNext('document');
+        };
+    }
+
+    function finishObjectCreation() {
+        // Сохраняем объект в массив
+        const newObj = {
+            id: Date.now(),
+            name: currentObject.name,
+            status: currentObject.status,
+            type: currentObject.type,
+            location: currentObject.location,
+            description: currentObject.description,
+            document: currentObject.document,
+            documentName: currentObject.documentName,
+            createdAt: new Date().toISOString()
+        };
+        userObjects.unshift(newObj);
+        saveObjects();
+
+        // Отображаем итоговую карточку в модалке
+        showResultPage(newObj);
+        addMessage('✅ Объект успешно добавлен! Открываю итоговую карточку.', 'bot');
+        // Сброс состояния
+        resetConversation();
+        // Показать главное меню
+        showMainMenu();
+    }
+
+    function showResultPage(obj) {
+        // Формируем красивую HTML-страницу внутри модального окна
+        const statusText = { federal: 'Федеральный', regional: 'Региональный', municipal: 'Муниципальный' }[obj.status] || obj.status;
+        const typeText = {
+            monument: 'Памятник', ensemble: 'Ансамбль', landmark: 'Достопримечательное место',
+            architectural_complex: 'Архитектурный комплекс', historical_building: 'Историческое здание',
+            garden_park: 'Садово-парковое искусство', archaeological: 'Объект археологического наследия'
+        }[obj.type] || obj.type;
+        const hasDoc = obj.document && obj.documentName;
+        const docHtml = hasDoc ? `<a href="#" id="downloadDocLink" style="color:#075e54;">📄 ${obj.documentName}</a>` : '❌ Документ не прикреплён';
+        const dateStr = new Date(obj.createdAt).toLocaleString('ru-RU');
+
+        modalDetails.innerHTML = `
+            <div class="object-card">
+                <strong>🏷 Название:</strong> ${escapeHtml(obj.name)}<br>
+                <strong>⭐ Статус:</strong> <span class="badge">${statusText}</span><br>
+                <strong>🏺 Вид:</strong> ${typeText}<br>
+                <strong>📍 Местоположение:</strong> ${escapeHtml(obj.location || 'не указано')}<br>
+                <strong>📝 Описание:</strong><br> ${escapeHtml(obj.description || 'нет описания')}<br>
+                <strong>📎 Документ:</strong> ${docHtml}<br>
+                <strong>🕒 Дата создания:</strong> ${dateStr}<br>
+            </div>
+        `;
+        modal.classList.add('active');
+        // Добавляем обработчик скачивания документа
+        if (hasDoc) {
+            const downloadLink = document.getElementById('downloadDocLink');
+            if (downloadLink) {
+                downloadLink.onclick = (e) => {
+                    e.preventDefault();
+                    const link = document.createElement('a');
+                    link.href = obj.document;
+                    link.download = obj.documentName;
+                    link.click();
+                };
+            }
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+            return c;
+        });
+    }
+
+    function resetConversation() {
+        step = 'idle';
+        currentObject = { name: '', status: '', type: '', location: '', description: '', document: null, documentName: '' };
+        waitingForFile = false;
+        inputField.disabled = false;
+        inputField.value = '';
+        removeOptions();
+    }
+
+    function showMainMenu() {
+        addMessage('🏠 Главное меню. Выберите действие:', 'bot');
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'options-buttons';
+        optionsDiv.id = 'initialOptions';
+        optionsDiv.innerHTML = `
+            <button class="opt-btn" data-action="new">➕ Добавить объект</button>
+            <button class="opt-btn" data-action="list">📋 Список объектов</button>
+        `;
+        chatDiv.appendChild(optionsDiv);
+        document.querySelectorAll('[data-action="new"]').forEach(btn => {
+            btn.addEventListener('click', () => startNewObject());
+        });
+        document.querySelectorAll('[data-action="list"]').forEach(btn => {
+            btn.addEventListener('click', () => showObjectsList());
+        });
+    }
+
+    function startNewObject() {
+        resetConversation();
+        step = 'asking_name';
+        addMessage('Давайте добавим новый объект культурного наследия. Введите название объекта:', 'bot');
+        inputField.disabled = false;
+        inputField.focus();
+    }
+
+    function showObjectsList() {
+        if (userObjects.length === 0) {
+            addMessage('У вас пока нет добавленных объектов. Нажмите "Добавить объект".', 'bot');
+            showMainMenu();
+            return;
+        }
+        addMessage('📋 Ваши объекты (нажмите на название для просмотра итоговой карточки):', 'bot');
+        userObjects.forEach(obj => {
+            const objLine = document.createElement('div');
+            objLine.className = 'options-buttons';
+            objLine.style.marginTop = '5px';
+            const btn = document.createElement('button');
+            btn.className = 'opt-btn';
+            btn.innerText = `🏛 ${obj.name.substring(0, 40)}${obj.name.length>40?'…':''}`;
+            btn.onclick = () => showResultPage(obj);
+            objLine.appendChild(btn);
+            chatDiv.appendChild(objLine);
+        });
+        // добавить кнопку назад в меню
+        const backBtnDiv = document.createElement('div');
+        backBtnDiv.className = 'options-buttons';
+        backBtnDiv.innerHTML = '<button class="opt-btn" id="backToMenu">◀ Назад в меню</button>';
+        chatDiv.appendChild(backBtnDiv);
+        document.getElementById('backToMenu')?.addEventListener('click', () => {
+            backBtnDiv.remove();
+            showMainMenu();
+        });
+    }
+
+    // Обработка текстового ввода
+    function handleUserInput(text) {
+        if (step === 'asking_name') {
+            if (text.trim() === '') {
+                addMessage('Название не может быть пустым. Введите название:', 'bot');
+                return;
+            }
+            currentObject.name = text.trim();
+            addMessage(currentObject.name, 'user');
+            step = 'asking_status';
+            addMessage('Выберите статус объекта:', 'bot');
+            showStatusOptions();
+        } 
+        else if (step === 'asking_location') {
+            currentObject.location = text.trim();
+            addMessage(currentObject.location, 'user');
+            askNext('location');
+        }
+        else if (step === 'asking_description') {
+            currentObject.description = text.trim();
+            addMessage(currentObject.description || '(пусто)', 'user');
+            askNext('description');
+        }
+        else {
+            // idle или неизвестно
+            addMessage('Пожалуйста, используйте кнопки меню.', 'bot');
+        }
+        inputField.value = '';
+    }
+
+    // Обработчик отправки сообщения
+    sendBtn.onclick = () => {
+        const text = inputField.value.trim();
+        if (!text) return;
+        if (step !== 'idle' && step !== 'asking_document') {
+            handleUserInput(text);
+        } else {
+            addMessage(text, 'user');
+            addMessage('Используйте кнопки меню для навигации.', 'bot');
+        }
+    };
+    inputField.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') sendBtn.click();
+    });
+
+    closeModal.onclick = () => {
+        modal.classList.remove('active');
+    };
+    printBtn.onclick = () => {
+        const printContent = modalDetails.innerHTML;
+        const win = window.open();
+        win.document.write(`
+            <html><head><title>Карточка ОКН</title>
+            <style>body { font-family: Arial; padding: 20px; } .object-card { border: 1px solid #ccc; padding: 15px; }</style>
+            </head><body>${printContent}</body></html>
+        `);
+        win.print();
+    };
+
+    // Инициализация
+    loadObjects();
+    // Обработчики для кнопок начального меню (динамические)
+    setTimeout(() => {
+        document.querySelectorAll('[data-action="new"]').forEach(btn => {
+            btn.addEventListener('click', () => startNewObject());
+        });
+        document.querySelectorAll('[data-action="list"]').forEach(btn => {
+            btn.addEventListener('click', () => showObjectsList());
+        });
+    }, 100);
+</script>
+</body>
+</html>
